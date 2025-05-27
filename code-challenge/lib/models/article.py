@@ -1,4 +1,3 @@
-
 from lib.db.connection import get_connection
 
 class Article:
