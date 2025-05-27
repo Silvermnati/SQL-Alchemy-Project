@@ -1,4 +1,4 @@
-# lib/db/schema.sql
+-- lib/db/schema.sql
 CREATE TABLE authors (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL CHECK(length(name) > 0)
