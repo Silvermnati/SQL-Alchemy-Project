@@ -1,4 +1,4 @@
-# tests/test_author.py
+
 from lib.models.author import Author
 
 def test_author_creation():
