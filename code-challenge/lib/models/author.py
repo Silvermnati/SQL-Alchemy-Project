@@ -7,6 +7,12 @@ class Author:
 
     def __repr__(self):
         return f"<Author {self.id}: {self.name}>"
+    
+    def __eq__(self, other):
+        return isinstance(other, Author) and self.id == other.id
+    
+    def __hash__(self):
+        return hash(self.id)
 
     @property
     def name(self):
@@ -19,24 +25,49 @@ class Author:
         self._name = value.strip()
 
     def save(self):
-        with get_connection() as conn:
-            cursor = conn.cursor()
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
             if self.id:
-                cursor.execute("UPDATE authors SET name=? WHERE id=?", 
-                             (self.name, self.id))
+                cursor.execute(
+                    "UPDATE authors SET name = ? WHERE id = ?", 
+                    (self.name, self.id)
+                )
             else:
-                cursor.execute("INSERT INTO authors (name) VALUES (?)", 
-                             (self.name,))
+                cursor.execute(
+                    "INSERT INTO authors (name) VALUES (?)", 
+                    (self.name,)
+                )
                 self.id = cursor.lastrowid
             conn.commit()
+        finally:
+            conn.close()
         return self
 
     @classmethod
     def find_by_id(cls, author_id):
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM authors WHERE id=?", (author_id,))
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM authors WHERE id = ?", (author_id,))
             row = cursor.fetchone()
-            return cls(row['name'], row['id']) if row else None
+            if row:
+                return cls(row['name'], row['id'])
+            return None
+        finally:
+            conn.close()
 
-    
+    def magazines(self):
+        from lib.models.magazine import Magazine
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT DISTINCT magazines.* FROM magazines
+                JOIN articles ON magazines.id = articles.magazine_id
+                WHERE articles.author_id = ?
+            """, (self.id,))
+            rows = cursor.fetchall()
+            return [Magazine(row['name'], row['category'], row['id']) for row in rows]
+        finally:
+            conn.close()

@@ -1,30 +1,36 @@
 import os
 import sys
 from pathlib import Path
+import sqlite3
+
+# Add project root to Python path
 sys.path.append(str(Path(__file__).parent.parent))
-from lib.db.connection import get_connection
 
 def initialize_database():
-    conn = get_connection()
+    db_file = 'articles.db'
     
-    # Add this line to drop existing tables
-    conn.executescript("""
-        DROP TABLE IF EXISTS articles;
-        DROP TABLE IF EXISTS authors;
-        DROP TABLE IF EXISTS magazines;
-    """)
+    # Remove existing database file
+    if os.path.exists(db_file):
+        os.remove(db_file)
+        print(f"Removed existing database: {db_file}")
     
-    with open('lib/db/schema.sql') as f:
-        conn.executescript(f.read())
-    conn.commit()
-    print("Database reset and initialized!")
-    
-def initialize_database():
-    conn = get_connection()
-    with open('lib/db/schema.sql') as f:
-        conn.executescript(f.read())
-    conn.commit()
-    print("Database initialized!")
+    # Create new database
+    conn = sqlite3.connect(db_file)
+    try:
+        # Read schema file
+        schema_path = Path(__file__).parent.parent / 'lib' / 'db' / 'schema.sql'
+        with open(schema_path, 'r') as f:
+            schema = f.read()
+        
+        # Execute schema commands
+        conn.executescript(schema)
+        conn.commit()
+        print("Database initialized successfully!")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+        raise
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     initialize_database()
